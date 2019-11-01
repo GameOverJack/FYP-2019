@@ -61,25 +61,18 @@ public class VrController : MonoBehaviour
     private void CalculateMovement()
     {
         //Calculate movement orientation
-
-        Vector3 orientationEuler = new Vector3(0, _head.eulerAngles.y, 0);
         Vector3 movement = Vector3.zero;
-        Quaternion orientation = Quaternion.Euler(orientationEuler);
 
         //If not moving set speed to zero
-        if (TouchPadPressed.GetLastStateUp(SteamVR_Input_Sources.Any))
+        if (TouchPadValue.axis.magnitude == 0)
             _speed = 0;
 
-        //If button pressed on either controller
-        if (TouchPadPressed.state)
-        {
-            // Add clamp to speed
-            _speed += TouchPadValue.axis.y * Sensitivity;
-            _speed = Mathf.Clamp(_speed, -MaxSpeed, MaxSpeed);
+        // Add clamp to speed
+        _speed += TouchPadValue.axis.magnitude * Sensitivity;
+        _speed = Mathf.Clamp(_speed, -MaxSpeed, MaxSpeed);
 
-            //Orientation
-            movement += orientation * (_speed * Vector3.forward);
-        }
+        //Orientation
+        movement += CalculateOrientation() * (_speed * Vector3.forward);
 
         //Gravity
         movement.y -= Gravity * Time.deltaTime;
@@ -88,6 +81,15 @@ public class VrController : MonoBehaviour
         //Apply
 
         _characterController.Move(movement * Time.deltaTime);
+    }
+
+    private Quaternion CalculateOrientation() 
+    {
+        float rotation = Mathf.Atan2(TouchPadValue.axis.x, TouchPadValue.axis.y);
+        rotation *= Mathf.Rad2Deg;
+
+        Vector3 orientationEuler = new Vector3(0, _head.eulerAngles.y + rotation, 0);
+        return Quaternion.Euler(orientationEuler);
     }
 
     
