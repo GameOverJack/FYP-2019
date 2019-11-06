@@ -66,13 +66,12 @@ public class VrControllerMovement2 : MonoBehaviour
     {
         //Calculate movement orientation
 
-        Vector3 orientationEuler = new Vector3(0, _head.eulerAngles.y, 0);
+        Quaternion orientation = CalculateOrientation();
         Vector3 movement = Vector3.zero;
-        Quaternion orientation = Quaternion.Euler(orientationEuler);
 
-        _moveDirection = Quaternion.AngleAxis(GetTouchpadAngle() + HandAxis.transform.localRotation.eulerAngles.y, Vector3.up) * Vector3.forward;
+        _moveDirection = orientation * (Speed * Vector3.forward);
 
-        if(TouchPadValue.axis.magnitude > Deadzone)
+        if (TouchPadValue.axis.magnitude > Deadzone)
         {
             _collider.material = NoFrictionMaterial;
             velocity = _moveDirection;
@@ -82,7 +81,7 @@ public class VrControllerMovement2 : MonoBehaviour
                 float jumpSpeed = Mathf.Sqrt(2 * JumpHeight * 9.81f);
                 _rigidBody.AddForce(0, jumpSpeed, 0, ForceMode.VelocityChange);
             }
-            _rigidBody.AddForce(velocity.x *Speed - _rigidBody.velocity.x, 0, velocity.z *Speed - _rigidBody.velocity.z, ForceMode.VelocityChange);
+            _rigidBody.AddForce(_moveDirection.x - _rigidBody.velocity.x, 0, _moveDirection.z - _rigidBody.velocity.z, ForceMode.VelocityChange);
 
             Debug.Log("Velocity" + velocity);
             Debug.Log("Movement Direction:" + _moveDirection);
@@ -104,6 +103,15 @@ public class VrControllerMovement2 : MonoBehaviour
         {
             return Mathf.Atan2(TouchPadValue.axis.x, TouchPadValue.axis.y) * Mathf.Rad2Deg;
         }
+    }
+
+    private Quaternion CalculateOrientation()
+    {
+        float rotation = Mathf.Atan2(TouchPadValue.axis.x, TouchPadValue.axis.y);
+        rotation *= Mathf.Rad2Deg;
+
+        Vector3 orientationEuler = new Vector3(0, _head.eulerAngles.y + rotation, 0);
+        return Quaternion.Euler(orientationEuler);
     }
 
     private void OnCollisionEnter(Collision collision)

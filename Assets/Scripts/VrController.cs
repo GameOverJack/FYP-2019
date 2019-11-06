@@ -61,6 +61,7 @@ public class VrController : MonoBehaviour
     private void CalculateMovement()
     {
         //Calculate movement orientation
+        Quaternion orientation = CalculateOrientation();
         Vector3 movement = Vector3.zero;
 
         //If not moving set speed to zero
@@ -72,7 +73,7 @@ public class VrController : MonoBehaviour
         _speed = Mathf.Clamp(_speed, -MaxSpeed, MaxSpeed);
 
         //Orientation
-        movement += CalculateOrientation() * (_speed * Vector3.forward);
+        movement +=  orientation * (_speed * Vector3.forward);
 
         //Gravity
         movement.y -= Gravity * Time.deltaTime;
