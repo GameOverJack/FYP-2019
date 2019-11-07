@@ -83,8 +83,6 @@ public class VrControllerMovement2 : MonoBehaviour
             }
             _rigidBody.AddForce(_moveDirection.x - _rigidBody.velocity.x, 0, _moveDirection.z - _rigidBody.velocity.z, ForceMode.VelocityChange);
 
-            Debug.Log("Velocity" + velocity);
-            Debug.Log("Movement Direction:" + _moveDirection);
         }
         else if(floorValue > 0)
         {
@@ -114,18 +112,25 @@ public class VrControllerMovement2 : MonoBehaviour
         return Quaternion.Euler(orientationEuler);
     }
 
+    /*Checks to see if the player is on a surface, if they are enable the ability to jump
+    unless they are on a surfing platform */
     private void OnCollisionEnter(Collision collision)
     {
+        if(collision.collider.tag == "SurfingPlatform") 
+        {
+            Debug.Log("isSurfing");
+        }
+        else
         floorValue++;
     }
+    // As they are jumping disable the ability to jump in midair
     private void OnCollisionExit(Collision collision)
     {
-        floorValue--;
-    }
-
-    private void PlayerJump() 
-    {
-        
-    }
-    
+        if (collision.collider.tag == "SurfingPlatform")
+        {
+            Debug.Log("isNotSurfing");
+        }
+        else
+            floorValue--;
+    }  
 }
