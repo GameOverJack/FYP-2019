@@ -19,10 +19,13 @@ public class VrControllerMovement2 : MonoBehaviour
 
     private  Vector3 _moveDirection;
     private Vector3 velocity = new Vector3(0, 0, 0);
+    private Vector3 _collisionNormal = new Vector3(0, 0, 0);
 
     private int floorValue;
+    private int surfingValue;
 
     private Transform _head = null;
+    private Transform _surfingPlatform;
     private CapsuleCollider _collider;
     private Rigidbody _rigidBody;
 
@@ -68,12 +71,17 @@ public class VrControllerMovement2 : MonoBehaviour
 
         Quaternion orientation = CalculateOrientation();
         Vector3 movement = Vector3.zero;
-
-        _moveDirection = orientation * (Speed * Vector3.forward);
-
-        if (TouchPadValue.axis.magnitude > Deadzone)
+        if(surfingValue > 0)
+        {
+            _moveDirection = _head.forward;
+            Vector3 temp = Vector3.Cross(_collisionNormal, _moveDirection);
+            _moveDirection = Vector3.Cross(temp, _collisionNormal);
+            _rigidBody.AddForce(_moveDirection.x - _rigidBody.velocity.x, _moveDirection.y - _rigidBody.velocity.y, _moveDirection.z - _rigidBody.velocity.z, ForceMode.VelocityChange);
+        }
+        else if (TouchPadValue.axis.magnitude > Deadzone)
         {
             _collider.material = NoFrictionMaterial;
+            _moveDirection = orientation * (Speed * Vector3.forward);
             velocity = _moveDirection;
 
             if(JumpTrigger.GetStateDown(MovementController) && floorValue > 0)
@@ -112,25 +120,48 @@ public class VrControllerMovement2 : MonoBehaviour
         return Quaternion.Euler(orientationEuler);
     }
 
-    /*Checks to see if the player is on a surface, if they are enable the ability to jump
-    unless they are on a surfing platform */
+    /*Checks to see if the player is on a surface, if they are enable the ability to jump 
+     get the normal of the collsion for surfing*/
     private void OnCollisionEnter(Collision collision)
     {
-        if(collision.collider.tag == "SurfingPlatform") 
-        {
-            Debug.Log("isSurfing");
-        }
-        else
+        _collisionNormal = collision.contacts[0].normal;
         floorValue++;
     }
+
     // As they are jumping disable the ability to jump in midair
     private void OnCollisionExit(Collision collision)
     {
-        if (collision.collider.tag == "SurfingPlatform")
-        {
-            Debug.Log("isNotSurfing");
-        }
-        else
             floorValue--;
-    }  
+    }
+
+    //disable the gravity when surfing
+    private void OnTriggerEnter(Collider collider)
+    {
+        surfingValue++;
+        
+        if (collider.tag == "SurfingPlatform" && surfingValue == 1)
+        {
+            _surfingPlatform = collider.transform;
+            
+            _collider.material = FrictionMaterial;
+            _rigidBody.useGravity = false;
+            _rigidBody.velocity = Vector3.zero;
+            _rigidBody.Sleep();
+            Debug.Log("Trigger enter");
+        }
+
+    }
+
+    //re-enable the rigidbody when leaving a SurfingPlatform
+    private void OnTriggerExit(Collider collider)
+    {
+        surfingValue--;
+        if (collider.tag == "SurfingPlatform" && surfingValue == 0)
+        {
+            _rigidBody.WakeUp();
+            _rigidBody.useGravity = true;
+            Debug.Log("TriggerExit");
+        }
+
+    }
 }
