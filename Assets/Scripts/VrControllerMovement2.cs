@@ -8,6 +8,9 @@ public class VrControllerMovement2 : MonoBehaviour
     public float Speed = 0.0f;
     public float Deadzone = 0.0f;
     public float JumpHeight = 1.0f;
+    public float MaxAcceleration = 2f;
+    public float AccelerationResetTimer = 2.0f;
+    public float AccelerationDecay = 0.05f;
 
     public SteamVR_Input_Sources MovementController;
     public SteamVR_Action_Vector2 TouchPadValue = null;
@@ -17,14 +20,18 @@ public class VrControllerMovement2 : MonoBehaviour
     public PhysicMaterial NoFrictionMaterial;
     public PhysicMaterial FrictionMaterial;
 
-    private Vector3 _moveDirection;
-    private Vector3 velocity = new Vector3(0, 0, 0);
-    private Vector3 _collisionNormal = new Vector3(0, 0, 0);
-    private Vector3 angularVelocity = new Vector3(0, 0, 0);
-    private Quaternion previousRotation;
+    private float _previousAcceleration = 0.0f;
+    private float _currentTimer = 0.0f;
+    private float _accelerationFactor = 0.0f;
 
-    private int floorValue;
-    private int surfingValue;
+    private Vector3 _moveDirection;
+    private Vector3 _velocity = new Vector3(0, 0, 0);
+    private Vector3 _collisionNormal = new Vector3(0, 0, 0);
+    private Vector3 _angularVelocity = new Vector3(0, 0, 0);
+    private Quaternion _previousRotation;
+
+    private int _floorValue;
+    private int _surfingValue;
 
     private Transform _head = null;
     private Transform _surfingPlatform;
@@ -43,6 +50,7 @@ public class VrControllerMovement2 : MonoBehaviour
         HandleHeight();
         CalculateMovement();
         CalculateAngularVelocity();
+        CalculateAcceleration();
     }
 
     //Changes CharacterController height to be the cameras height
@@ -76,9 +84,9 @@ public class VrControllerMovement2 : MonoBehaviour
         Vector3 movement = Vector3.zero;
         /*If the player is on a surfing platform, get the direction the player is facing 
         offset it by the crossproduct of the normal of the surfing platform and the direction the player is facing*/
-        if(surfingValue > 0)
+        if(_surfingValue > 0)
         {
-            _moveDirection = _head.forward * Speed;
+            _moveDirection = _head.forward * (Speed * _accelerationFactor);
             Vector3 temp = Vector3.Cross(_collisionNormal, _moveDirection);
             _moveDirection = Vector3.Cross(temp, _collisionNormal);
             _rigidBody.AddForce(_moveDirection.x - _rigidBody.velocity.x, _moveDirection.y - _rigidBody.velocity.y, _moveDirection.z - _rigidBody.velocity.z, ForceMode.VelocityChange);
@@ -87,17 +95,17 @@ public class VrControllerMovement2 : MonoBehaviour
         {
             _collider.material = NoFrictionMaterial;
             _moveDirection = orientation * (Speed * Vector3.forward);
-            velocity = _moveDirection;
+            _velocity = _moveDirection;
 
-            if(JumpTrigger.GetStateDown(MovementController) && floorValue > 0)
+            if(JumpTrigger.GetStateDown(MovementController) && _floorValue > 0)
             {
                 float jumpSpeed = Mathf.Sqrt(2 * JumpHeight * 9.81f);
                 _rigidBody.AddForce(0, jumpSpeed, 0, ForceMode.VelocityChange);
             }
-            _rigidBody.AddForce(_moveDirection.x - _rigidBody.velocity.x, 0, _moveDirection.z - _rigidBody.velocity.z, ForceMode.VelocityChange);
+            _rigidBody.AddForce(_velocity.x - _rigidBody.velocity.x, 0, _velocity.z - _rigidBody.velocity.z, ForceMode.VelocityChange);
 
         }
-        else if(floorValue > 0)
+        else if(_floorValue > 0)
         {
             _collider.material = FrictionMaterial;
         }
@@ -127,16 +135,45 @@ public class VrControllerMovement2 : MonoBehaviour
     // Calculates the velocity in which the players head is turning
     private void CalculateAngularVelocity()
     {
-        Quaternion deltaRotation = CalculateOrientation() * Quaternion.Inverse(previousRotation);
+        Quaternion deltaRotation = CalculateOrientation() * Quaternion.Inverse(_previousRotation);
 
-        previousRotation = CalculateOrientation();
+        _previousRotation = CalculateOrientation();
 
         deltaRotation.ToAngleAxis(out var angle, out var axis);
 
         angle *= Mathf.Deg2Rad;
 
-        angularVelocity = (1.0f / Time.deltaTime) * angle * axis;
+        _angularVelocity = (1.0f / Time.deltaTime) * angle * axis;
         //Debug.Log(angularVelocity);
+    }
+    //uses the angular velocity from the player head turning into an acceleration multiplier that is applied while moving
+    private void CalculateAcceleration()
+    {
+        _accelerationFactor = Mathf.Abs(_angularVelocity.y);
+        _accelerationFactor = (_accelerationFactor / 3) + 1;
+        if (_accelerationFactor > MaxAcceleration)
+        {
+            _accelerationFactor = MaxAcceleration;
+        }
+        if (_accelerationFactor > _previousAcceleration)
+        {
+            _currentTimer = 0.0f;
+            _previousAcceleration = _accelerationFactor;
+        }
+        else 
+        {
+            _accelerationFactor = _previousAcceleration;
+        }
+        if (_currentTimer >= AccelerationResetTimer)
+        {
+            _accelerationFactor = _accelerationFactor * (1 - AccelerationDecay);
+            if (_accelerationFactor <= 1.0f)
+            {
+                _accelerationFactor = 1.0f;
+            }
+            _previousAcceleration = _accelerationFactor;
+        }
+        _currentTimer += Time.deltaTime;
     }
 
     /*Checks to see if the player is on a surface, if they are enable the ability to jump 
@@ -144,21 +181,21 @@ public class VrControllerMovement2 : MonoBehaviour
     private void OnCollisionEnter(Collision collision)
     {
         _collisionNormal = collision.contacts[0].normal;
-        floorValue++;
+        _floorValue++;
     }
 
     // As they are jumping disable the ability to jump in midair
     private void OnCollisionExit(Collision collision)
     {
-            floorValue--;
+            _floorValue--;
     }
 
     //disable the gravity when surfing
     private void OnTriggerEnter(Collider collider)
     {
-        surfingValue++;
+        _surfingValue++;
         
-        if (collider.tag == "SurfingPlatform" && surfingValue == 1)
+        if (collider.tag == "SurfingPlatform" && _surfingValue == 1)
         {
             _surfingPlatform = collider.transform;
             
@@ -174,8 +211,8 @@ public class VrControllerMovement2 : MonoBehaviour
     //re-enable the rigidbody when leaving a SurfingPlatform
     private void OnTriggerExit(Collider collider)
     {
-        surfingValue--;
-        if (collider.tag == "SurfingPlatform" && surfingValue == 0)
+        _surfingValue--;
+        if (collider.tag == "SurfingPlatform" && _surfingValue == 0)
         {
             _rigidBody.WakeUp();
             _rigidBody.useGravity = true;
