@@ -17,9 +17,11 @@ public class VrControllerMovement2 : MonoBehaviour
     public PhysicMaterial NoFrictionMaterial;
     public PhysicMaterial FrictionMaterial;
 
-    private  Vector3 _moveDirection;
+    private Vector3 _moveDirection;
     private Vector3 velocity = new Vector3(0, 0, 0);
     private Vector3 _collisionNormal = new Vector3(0, 0, 0);
+    private Vector3 angularVelocity = new Vector3(0, 0, 0);
+    private Quaternion previousRotation;
 
     private int floorValue;
     private int surfingValue;
@@ -40,6 +42,7 @@ public class VrControllerMovement2 : MonoBehaviour
     {
         HandleHeight();
         CalculateMovement();
+        CalculateAngularVelocity();
     }
 
     //Changes CharacterController height to be the cameras height
@@ -71,9 +74,11 @@ public class VrControllerMovement2 : MonoBehaviour
 
         Quaternion orientation = CalculateOrientation();
         Vector3 movement = Vector3.zero;
+        /*If the player is on a surfing platform, get the direction the player is facing 
+        offset it by the crossproduct of the normal of the surfing platform and the direction the player is facing*/
         if(surfingValue > 0)
         {
-            _moveDirection = _head.forward;
+            _moveDirection = _head.forward * Speed;
             Vector3 temp = Vector3.Cross(_collisionNormal, _moveDirection);
             _moveDirection = Vector3.Cross(temp, _collisionNormal);
             _rigidBody.AddForce(_moveDirection.x - _rigidBody.velocity.x, _moveDirection.y - _rigidBody.velocity.y, _moveDirection.z - _rigidBody.velocity.z, ForceMode.VelocityChange);
@@ -118,6 +123,20 @@ public class VrControllerMovement2 : MonoBehaviour
 
         Vector3 orientationEuler = new Vector3(0, _head.eulerAngles.y + rotation, 0);
         return Quaternion.Euler(orientationEuler);
+    }
+    // Calculates the velocity in which the players head is turning
+    private void CalculateAngularVelocity()
+    {
+        Quaternion deltaRotation = CalculateOrientation() * Quaternion.Inverse(previousRotation);
+
+        previousRotation = CalculateOrientation();
+
+        deltaRotation.ToAngleAxis(out var angle, out var axis);
+
+        angle *= Mathf.Deg2Rad;
+
+        angularVelocity = (1.0f / Time.deltaTime) * angle * axis;
+        //Debug.Log(angularVelocity);
     }
 
     /*Checks to see if the player is on a surface, if they are enable the ability to jump 
