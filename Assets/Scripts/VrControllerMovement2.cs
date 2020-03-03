@@ -16,6 +16,7 @@ public class VrControllerMovement2 : MonoBehaviour
     public SteamVR_Action_Vector2 TouchPadValue = null;
     public SteamVR_Action_Boolean JumpTrigger;
     public GameObject HandAxis;
+    public Transform RespawnPoint;
 
     public PhysicMaterial NoFrictionMaterial;
     public PhysicMaterial FrictionMaterial;
@@ -48,9 +49,9 @@ public class VrControllerMovement2 : MonoBehaviour
     private void Update()
     {
         HandleHeight();
-        CalculateMovement();
         CalculateAngularVelocity();
         CalculateAcceleration();
+        CalculateMovement();
     }
 
     //Changes CharacterController height to be the cameras height
@@ -175,11 +176,21 @@ public class VrControllerMovement2 : MonoBehaviour
         }
         _currentTimer += Time.deltaTime;
     }
+    //If the character comes into contact with a deathfloor they will respawn at the levels start point.
+    private void RespawnCharacter()
+    {
+        this.transform.position = RespawnPoint.position;
+        this.transform.rotation = RespawnPoint.rotation;
+    }
 
     /*Checks to see if the player is on a surface, if they are enable the ability to jump 
      get the normal of the collsion for surfing*/
     private void OnCollisionEnter(Collision collision)
     {
+        if (collision.transform.tag == "Deathfloor")
+        {
+            RespawnCharacter();
+        }
         _collisionNormal = collision.contacts[0].normal;
         _floorValue++;
     }

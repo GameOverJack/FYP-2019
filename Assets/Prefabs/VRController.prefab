@@ -503,9 +503,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 119d4626a287e6d48bb965c5914baf4e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Speed: 1
+  Speed: 1.75
   Deadzone: 0.1
   JumpHeight: 1
+  MaxAcceleration: 2
+  AccelerationResetTimer: 3
+  AccelerationDecay: 0.005
   MovementController: 0
   TouchPadValue:
     actionPath: /actions/default/in/TouchpadPosition

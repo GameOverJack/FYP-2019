@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 2
   tags:
   - SurfingPlatform
+  - Deathfloor
   layers:
   - Default
   - TransparentFX
