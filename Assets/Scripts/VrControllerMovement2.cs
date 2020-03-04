@@ -11,6 +11,7 @@ public class VrControllerMovement2 : MonoBehaviour
     public float MaxAcceleration = 2f;
     public float AccelerationResetTimer = 2.0f;
     public float AccelerationDecay = 0.05f;
+    public float GlidingDecay;
 
     public SteamVR_Input_Sources MovementController;
     public SteamVR_Action_Vector2 TouchPadValue = null;
@@ -21,11 +22,16 @@ public class VrControllerMovement2 : MonoBehaviour
     public PhysicMaterial NoFrictionMaterial;
     public PhysicMaterial FrictionMaterial;
 
+    private bool _isWalkingFloor = true;
+    private bool _isJumping = false;
+    private bool _isGliding = false;
+
     private float _previousAcceleration = 0.0f;
     private float _currentTimer = 0.0f;
     private float _accelerationFactor = 0.0f;
 
     private Vector3 _moveDirection;
+    private Vector3 _surfDirection;
     private Vector3 _velocity = new Vector3(0, 0, 0);
     private Vector3 _collisionNormal = new Vector3(0, 0, 0);
     private Vector3 _angularVelocity = new Vector3(0, 0, 0);
@@ -35,7 +41,6 @@ public class VrControllerMovement2 : MonoBehaviour
     private int _surfingValue;
 
     private Transform _head = null;
-    private Transform _surfingPlatform;
     private CapsuleCollider _collider;
     private Rigidbody _rigidBody;
 
@@ -85,11 +90,20 @@ public class VrControllerMovement2 : MonoBehaviour
         Vector3 movement = Vector3.zero;
         /*If the player is on a surfing platform, get the direction the player is facing 
         offset it by the crossproduct of the normal of the surfing platform and the direction the player is facing*/
-        if(_surfingValue > 0)
+        Debug.Log("is jumping " + _isJumping);
+        Debug.Log("_isWalkingFloor " + _isWalkingFloor);
+        Debug.Log("_isGliding " + _isWalkingFloor);
+        if (_surfingValue > 0)
+        {
+            _surfDirection = _head.forward * (Speed * _accelerationFactor);
+            Vector3 temp = Vector3.Cross(_collisionNormal, _surfDirection);
+            _surfDirection = Vector3.Cross(temp, _collisionNormal);
+            _rigidBody.AddForce(_surfDirection.x - _rigidBody.velocity.x, _surfDirection.y - _rigidBody.velocity.y, _surfDirection.z - _rigidBody.velocity.z, ForceMode.VelocityChange);
+        }
+        else if(!_isWalkingFloor && !_isJumping && _isGliding)
         {
             _moveDirection = _head.forward * (Speed * _accelerationFactor);
-            Vector3 temp = Vector3.Cross(_collisionNormal, _moveDirection);
-            _moveDirection = Vector3.Cross(temp, _collisionNormal);
+            _moveDirection.y -= _moveDirection.y + GlidingDecay;
             _rigidBody.AddForce(_moveDirection.x - _rigidBody.velocity.x, _moveDirection.y - _rigidBody.velocity.y, _moveDirection.z - _rigidBody.velocity.z, ForceMode.VelocityChange);
         }
         else if (TouchPadValue.axis.magnitude > Deadzone)
@@ -97,12 +111,14 @@ public class VrControllerMovement2 : MonoBehaviour
             _collider.material = NoFrictionMaterial;
             _moveDirection = orientation * (Speed * Vector3.forward);
             _velocity = _moveDirection;
-
+            //disable jumping until a solution for gliding is found
             if(JumpTrigger.GetStateDown(MovementController) && _floorValue > 0)
             {
                 float jumpSpeed = Mathf.Sqrt(2 * JumpHeight * 9.81f);
                 _rigidBody.AddForce(0, jumpSpeed, 0, ForceMode.VelocityChange);
+                _isJumping = true;
             }
+            
             _rigidBody.AddForce(_velocity.x - _rigidBody.velocity.x, 0, _velocity.z - _rigidBody.velocity.z, ForceMode.VelocityChange);
 
         }
@@ -187,10 +203,23 @@ public class VrControllerMovement2 : MonoBehaviour
      get the normal of the collsion for surfing*/
     private void OnCollisionEnter(Collision collision)
     {
+        _isJumping = false;
+
         if (collision.transform.tag == "Deathfloor")
         {
+            _isWalkingFloor = true;
             RespawnCharacter();
         }
+        else if (collision.transform.tag == "Walkingfloor")
+        {
+            _isWalkingFloor = true;
+        }
+
+        if (collision.transform.tag == "SurfingPlatform")
+        {
+            _isGliding = false;
+        }
+
         _collisionNormal = collision.contacts[0].normal;
         _floorValue++;
     }
@@ -198,37 +227,27 @@ public class VrControllerMovement2 : MonoBehaviour
     // As they are jumping disable the ability to jump in midair
     private void OnCollisionExit(Collision collision)
     {
-            _floorValue--;
+        if (collision.transform.tag == "Walkingfloor")
+        {
+            _isWalkingFloor = false;
+        }
+
+        if (collision.transform.tag == "SurfingPlatform")
+        {
+            _isGliding = true;
+        }
+        _floorValue--;
     }
 
     //disable the gravity when surfing
     private void OnTriggerEnter(Collider collider)
     {
         _surfingValue++;
-        
-        if (collider.tag == "SurfingPlatform" && _surfingValue == 1)
-        {
-            _surfingPlatform = collider.transform;
-            
-            _collider.material = FrictionMaterial;
-            _rigidBody.useGravity = false;
-            _rigidBody.velocity = Vector3.zero;
-            _rigidBody.Sleep();
-            Debug.Log("Trigger enter");
-        }
-
     }
 
     //re-enable the rigidbody when leaving a SurfingPlatform
     private void OnTriggerExit(Collider collider)
     {
         _surfingValue--;
-        if (collider.tag == "SurfingPlatform" && _surfingValue == 0)
-        {
-            _rigidBody.WakeUp();
-            _rigidBody.useGravity = true;
-            Debug.Log("TriggerExit");
-        }
-
     }
 }
