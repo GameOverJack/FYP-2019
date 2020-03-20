@@ -22,6 +22,8 @@ public class VrControllerMovement2 : MonoBehaviour
     public PhysicMaterial NoFrictionMaterial;
     public PhysicMaterial FrictionMaterial;
 
+    public LevelChanger LevelChanger;
+
     private bool _isWalkingFloor = true;
     private bool _isJumping = false;
     private bool _isGliding = false;
@@ -209,6 +211,10 @@ public class VrControllerMovement2 : MonoBehaviour
         {
             _isWalkingFloor = true;
             RespawnCharacter();
+        }
+        else if (collision.transform.tag == "Teleporter")
+        {
+            LevelChanger.FadeToNextLevel();
         }
         else if (collision.transform.tag == "Walkingfloor")
         {

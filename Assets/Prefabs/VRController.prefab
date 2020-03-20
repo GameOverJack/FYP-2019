@@ -509,6 +509,7 @@ MonoBehaviour:
   MaxAcceleration: 2
   AccelerationResetTimer: 3
   AccelerationDecay: 0.005
+  GlidingDecay: 0.6
   MovementController: 0
   TouchPadValue:
     actionPath: /actions/default/in/TouchpadPosition
@@ -517,5 +518,6 @@ MonoBehaviour:
     actionPath: /actions/default/in/GrabGrip
     needsReinit: 0
   HandAxis: {fileID: 1629941341866473729}
+  RespawnPoint: {fileID: 0}
   NoFrictionMaterial: {fileID: 13400000, guid: 3ee229f5e7f48414aaa1c24bc495251d, type: 2}
   FrictionMaterial: {fileID: 13400000, guid: 6a8f503a91d03ac469d552603d39e527, type: 2}
