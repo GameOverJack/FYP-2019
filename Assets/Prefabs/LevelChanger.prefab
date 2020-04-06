@@ -109,7 +109,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7707988225440060928}
   - component: {fileID: 7707988225440060929}
-  - component: {fileID: 7707988225440060935}
+  - component: {fileID: 5575179727808531169}
   m_Layer: 0
   m_Name: LevelChanger
   m_TagString: Untagged
@@ -151,7 +151,7 @@ Animator:
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorControllerStateOnDisable: 0
---- !u!114 &7707988225440060935
+--- !u!114 &5575179727808531169
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

@@ -92,9 +92,11 @@ public class VrControllerMovement2 : MonoBehaviour
         Vector3 movement = Vector3.zero;
         /*If the player is on a surfing platform, get the direction the player is facing 
         offset it by the crossproduct of the normal of the surfing platform and the direction the player is facing*/
-        Debug.Log("is jumping " + _isJumping);
-        Debug.Log("_isWalkingFloor " + _isWalkingFloor);
-        Debug.Log("_isGliding " + _isWalkingFloor);
+       // Debug.Log("is jumping " + _isJumping);
+        //Debug.Log("_isWalkingFloor " + _isWalkingFloor);
+        //Debug.Log("_isGliding " + _isGliding);
+        //Debug.Log("Surfing value " + _surfingValue);
+        //Debug.Log("Acceleration factor" + _accelerationFactor);
         if (_surfingValue > 0)
         {
             _surfDirection = _head.forward * (Speed * _accelerationFactor);
@@ -104,8 +106,18 @@ public class VrControllerMovement2 : MonoBehaviour
         }
         else if(!_isWalkingFloor && !_isJumping && _isGliding)
         {
-            _moveDirection = _head.forward * (Speed * _accelerationFactor);
-            _moveDirection.y -= _moveDirection.y + GlidingDecay;
+            if(_head.rotation.x < 0)
+            {
+                _moveDirection.x = _head.forward.x * (Speed * _accelerationFactor);
+                _moveDirection.z = _head.forward.z * (Speed * _accelerationFactor);
+                //_moveDirection.y = _moveDirection.y - GlidingDecay;
+                _rigidBody.AddForce(_moveDirection.x - _rigidBody.velocity.x, 0, _moveDirection.z - _rigidBody.velocity.z, ForceMode.VelocityChange);
+            }
+            else
+            {
+                _moveDirection = _head.forward * (Speed * _accelerationFactor);
+                //_moveDirection.y = _moveDirection.y - GlidingDecay;
+            }
             _rigidBody.AddForce(_moveDirection.x - _rigidBody.velocity.x, _moveDirection.y - _rigidBody.velocity.y, _moveDirection.z - _rigidBody.velocity.z, ForceMode.VelocityChange);
         }
         else if (TouchPadValue.axis.magnitude > Deadzone)
@@ -163,26 +175,33 @@ public class VrControllerMovement2 : MonoBehaviour
         angle *= Mathf.Deg2Rad;
 
         _angularVelocity = (1.0f / Time.deltaTime) * angle * axis;
-        //Debug.Log(angularVelocity);
+        Debug.Log("Angular velocity" + _angularVelocity);
     }
     //uses the angular velocity from the player head turning into an acceleration multiplier that is applied while moving
     private void CalculateAcceleration()
     {
-        _accelerationFactor = Mathf.Abs(_angularVelocity.y);
-        _accelerationFactor = (_accelerationFactor / 3) + 1;
-        if (_accelerationFactor > MaxAcceleration)
+        if(_surfingValue > 0)
         {
-            _accelerationFactor = MaxAcceleration;
+            _accelerationFactor = Mathf.Abs(_angularVelocity.y) * .25f;
+
+            if (_accelerationFactor > MaxAcceleration)
+            {
+                _accelerationFactor = MaxAcceleration;
+            }
+
+            Debug.Log("Acceleration factor" + _accelerationFactor);
+            _accelerationFactor = _accelerationFactor + 1;
+            if (_accelerationFactor > _previousAcceleration)
+            {
+                _currentTimer = 0.0f;
+                _previousAcceleration = _accelerationFactor;
+            }
+            else
+            {
+                _accelerationFactor = _previousAcceleration;
+            }
         }
-        if (_accelerationFactor > _previousAcceleration)
-        {
-            _currentTimer = 0.0f;
-            _previousAcceleration = _accelerationFactor;
-        }
-        else 
-        {
-            _accelerationFactor = _previousAcceleration;
-        }
+        
         if (_currentTimer >= AccelerationResetTimer)
         {
             _accelerationFactor = _accelerationFactor * (1 - AccelerationDecay);
