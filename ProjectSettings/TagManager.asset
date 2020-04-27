@@ -8,6 +8,7 @@ TagManager:
   - Deathfloor
   - Walkingfloor
   - Teleporter
+  - EndGame
   layers:
   - Default
   - TransparentFX

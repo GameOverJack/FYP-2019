@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using Valve.VR;
 
 public class VrControllerMovement2 : MonoBehaviour
@@ -24,7 +25,9 @@ public class VrControllerMovement2 : MonoBehaviour
 
     public LevelChanger LevelChanger;
 
-    private bool _isWalkingFloor = true;
+    public Text GameOverText;
+
+    private bool _isWalkingFloor = true; 
     private bool _isJumping = false;
     private bool _isGliding = false;
 
@@ -175,7 +178,7 @@ public class VrControllerMovement2 : MonoBehaviour
         angle *= Mathf.Deg2Rad;
 
         _angularVelocity = (1.0f / Time.deltaTime) * angle * axis;
-        Debug.Log("Angular velocity" + _angularVelocity);
+        //Debug.Log("Angular velocity" + _angularVelocity);
     }
     //uses the angular velocity from the player head turning into an acceleration multiplier that is applied while moving
     private void CalculateAcceleration()
@@ -189,7 +192,7 @@ public class VrControllerMovement2 : MonoBehaviour
                 _accelerationFactor = MaxAcceleration;
             }
 
-            Debug.Log("Acceleration factor" + _accelerationFactor);
+            //Debug.Log("Acceleration factor" + _accelerationFactor);
             _accelerationFactor = _accelerationFactor + 1;
             if (_accelerationFactor > _previousAcceleration)
             {
@@ -235,9 +238,15 @@ public class VrControllerMovement2 : MonoBehaviour
         {
             LevelChanger.FadeToNextLevel();
         }
-        else if (collision.transform.tag == "Walkingfloor")
+        else if (collision.transform.tag == "Walkingfloor" || collision.transform.tag == "EndGame")
         {
             _isWalkingFloor = true;
+            if(collision.transform.tag == "EndGame")
+            {
+                GameOverText.enabled = true;
+                GameOverText.text = "Game Over \nTime: " + Time.realtimeSinceStartup;
+                Debug.Log("Time to finish game: " + Time.realtimeSinceStartup);
+            }
         }
 
         if (collision.transform.tag == "SurfingPlatform")
