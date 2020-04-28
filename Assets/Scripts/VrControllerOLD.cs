@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Valve.VR;
 
-public class VrController : MonoBehaviour
+public class VrControllerOLD: MonoBehaviour
 {
     public float Gravity = 30.0f;
     public float Sensitivity = 0.1f;
